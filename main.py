@@ -1,32 +1,46 @@
 from utils.actors.player import Player
-from utils.managers import GameManager
+from utils.world.platform import Platform
+from utils.managers import GameManager, updateWorld
 from utils.world.world import World, Physics
+from utils.graphics.sheets import consume_xml_sheet, Spritesheet
 import pygame
 
-def updateGameWindow(world, group):
-    world.window.fill((0,0,0))
-    group.draw(world.window)
-    pygame.display.update()
+HEIGHT = 600
+WIDTH = 500
+FPS = 27
+sheet_dir = "./assets/layouts/platformerGraphicsDeluxe_Updated/Tiles"
+sheet_fname = "{}/tiles_spritesheet.xml".format(sheet_dir)
+tile_fname = "{}/tiles_spritesheet.png".format(sheet_dir)
+bkgr_fname = "./assets/layouts/kenney_backgroundElements/Samples/colored_talltrees.png"
 
-pygame.init()
-win = pygame.display.set_mode((500,480))
-pygame.display.set_caption("Optical Illusion")
-clock = pygame.time.Clock()
+# Game Manager creates the game window and does other basic setup.
+gamemanager = GameManager(WIDTH, HEIGHT, "Optical Illusion")
+spritesheet = Spritesheet(tile_fname, consume_xml_sheet(sheet_fname))
 
-world = World(win, Physics(0.8, -0.15))
+background_image = pygame.image.load(bkgr_fname).convert()
+bheight = background_image.get_height()
+bwidth = background_image.get_width()
+scale = HEIGHT/bheight
+background_image = pygame.transform.scale(background_image, (int(scale*bheight), int(scale*bwidth)))
 
-gamemanager = GameManager()
+# world holds the basic parameters of the world and references to sprites
+world = World(gamemanager.win, Physics(1.0, -0.15), spritesheet, background_image)
 player = Player(world)
 
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
+for i in range(0, WIDTH, 50):
+    world.platform_factory(i, HEIGHT, 50, "grassCenter.png")
+for i in range(0, WIDTH, 50):
+    world.platform_factory(i, HEIGHT-50, 50, "grassMid.png")
+
 while gamemanager.state:
-    clock.tick(27)
+    gamemanager.clock.tick(FPS)
     gamemanager.parse(pygame.event.get())
     player.update()
 
-    updateGameWindow(world, all_sprites)
+    updateWorld(world, all_sprites)
 
 
 pygame.quit()
