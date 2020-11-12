@@ -1,0 +1,7 @@
+{
+"#" : "grassCenter",
+"_" : "grassMid",
+"[" : "grassHalfLeft",
+"]" : "grassHalfRight",
+"-" : "grassHalfMid"
+}

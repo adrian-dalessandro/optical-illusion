@@ -1,0 +1,3 @@
+1) abstract themes into their own folder and format
+2) make theme engine
+3) make weapons classes

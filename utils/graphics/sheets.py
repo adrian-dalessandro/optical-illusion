@@ -1,15 +1,4 @@
-import xml.etree.ElementTree as ET
 import pygame
-
-def consume_xml_sheet(filename):
-    root = ET.parse(filename).getroot()
-    sheet_dict = {}
-    for child in root.getchildren():
-        elem = {}
-        for key in ["x", "y", "width", "height"]:
-            elem[key] = int(child.get(key))
-        sheet_dict[child.get("name")] = elem
-    return sheet_dict
 
 class Spritesheet:
     # utility class for loading and parsing spritesheets

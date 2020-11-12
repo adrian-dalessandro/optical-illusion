@@ -2,8 +2,11 @@ import pygame
 
 def updateWorld(world, group):
     world.window.blit(world.background, [0, 0])
-    group.draw(world.window)
     world.all_platforms.draw(world.window)
+    for bullet in world.all_bullets:
+        bullet.update()
+        bullet.draw(world.window)
+    group.draw(world.window)
     pygame.display.update()
 
 class GameManager(object):
