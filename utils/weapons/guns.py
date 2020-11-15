@@ -1,13 +1,13 @@
 import pygame
 from pygame.math import Vector2 as vec
 import random
+from math import radians, cos, sin
 
 LEFT = -1
 RIGHT = 1
-UP = 2
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, direction, x, y, velocity, angle, distance, frames):
+    def __init__(self, direction, theta, x, y, velocity, angle, distance, frames):
         super(Bullet, self).__init__()
         self.vel = velocity
         self.direction = direction
@@ -19,18 +19,17 @@ class Bullet(pygame.sprite.Sprite):
         self.current_frame = random.randint(0, len(frames)-2)
         self.image = frames[self.current_frame]
         self.image.set_colorkey((0,0,0))
+        self.height = self.image.get_height()
+        self.width = self.image.get_width()
+
+        if direction == LEFT:
+            self.image =  pygame.transform.flip(self.image, True, False)
+
+        self.image = pygame.transform.rotate(self.image, direction*theta)
         self.rect = self.image.get_rect()
-        if direction//abs(direction) == LEFT:
-            self.rect.midright = self.pos
-            self.image = pygame.transform.flip(self.image, True, False)
-            if abs(direction) == UP:
-                self.rect.bottom -= 100
-                self.image = pygame.transform.rotate(self.image, -45)
-        else:
-            self.rect.midleft = self.pos
-            if abs(direction) == UP:
-                self.image = pygame.transform.rotate(self.image, 45)
-                self.rect.bottom -= 100
+        self.rect.centery = y - sin(radians(theta))*self.height//2
+        self.rect.centerx = x + direction*cos(radians(theta))*self.width//2
+
 
     def update(self):
         self.pos += self.vel
@@ -40,9 +39,21 @@ class Bullet(pygame.sprite.Sprite):
         if self.count > self.distance:
             self.kill()
 
+    def animate(self):
+        pass
+
+"""
+Gun logic:
+    - If fire has already been hit,
+"""
 
 class DefaultGun(object):
     def __init__(self):
+        #self.statistics = {
+        #        "firerate": 4,
+        #        "velocity": Vec(0,0),
+        #        "spread" : 1,
+        #        "angle" : Vec(0,0)}
         self.firerate = 4 #per second
         self.cooldown = 0
 
@@ -56,9 +67,9 @@ class DefaultGun(object):
     def animate(self):
         pass
 
-    def fire(self, direction, x, y):
+    def fire(self, direction, theta, x, y):
         self.cooldown = self.firerate
-        return Bullet(direction, x, y)
+        return Bullet(direction, theta, x, y)
 
 # TODO
 # Gun needs to store references to
@@ -71,9 +82,9 @@ class FireGun(DefaultGun):
         self.frames = spritesheet.get_images(100)
         self.bullet = None
 
-    def fire(self, direction, x, y):
+    def fire(self, direction, theta, x, y):
         self.cooldown = self.firerate
-        return Bullet(direction, x, y, vec(0,0), vec(0,0), 2, self.frames)
+        return Bullet(direction, theta, x, y, vec(0,0), vec(0,0), 2, self.frames)
 
 class MultiGun(DefaultGun):
     def __init__(self):

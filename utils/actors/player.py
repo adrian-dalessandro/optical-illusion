@@ -1,5 +1,6 @@
 import pygame
 from pygame.math import Vector2 as vec
+from math import cos, sin, radians
 
 LEFT = -1
 RIGHT = 1
@@ -22,6 +23,7 @@ class Player(pygame.sprite.Sprite):
         self.isJumping = 0
         self.isFacing = RIGHT
         self.imgFacing = RIGHT
+        self.isAiming = RIGHT
         self.isUP = 1
         self.active_gun = None # todo
 
@@ -42,12 +44,27 @@ class Player(pygame.sprite.Sprite):
         self.isFacing = direction//abs(direction)
         self.isUP = abs(direction)
 
+    def animate(self):
+        pass
+
+
     def shoot(self):
+        keys = pygame.key.get_pressed()
+        theta_matrix = [[0,  0], [90, 45]]
         if not self.active_gun.check_cooldown():
+            theta = theta_matrix[keys[MV_UP] or keys[CROUCH]][keys[MV_LEFT] or keys[MV_RIGHT]]
+            if keys[CROUCH]:
+                theta = -theta
+            x = cos(radians(theta))*self.image.get_width()//2
+            y = sin(radians(theta))*self.image.get_height()
+
             if self.isFacing == LEFT:
-                self.world.add_to_group(self.active_gun.fire(self.isFacing*self.isUP,self.rect.left, self.rect.centery ), "bullets")
+                x = self.rect.centerx - x
             elif self.isFacing == RIGHT:
-                self.world.add_to_group(self.active_gun.fire(self.isFacing*self.isUP,self.rect.right, self.rect.centery ), "bullets")
+                x = self.rect.centerx + x
+            y = self.rect.centery - y
+
+            self.world.add_to_group(self.active_gun.fire(self.isFacing, theta, x, y ), "bullets")
 
     def update(self):
         # For each round, calculate applied forces and simulate acceleration
