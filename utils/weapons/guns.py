@@ -4,6 +4,7 @@ import random
 
 LEFT = -1
 RIGHT = 1
+UP = 2
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, direction, x, y, velocity, angle, distance, frames):
@@ -15,24 +16,29 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = vec(x, y)
         self.count = 0
         self.frames = frames
-        self.current_frame = random.randint(0, len(frames)-1)
+        self.current_frame = random.randint(0, len(frames)-2)
         self.image = frames[self.current_frame]
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
-        if direction == LEFT:
+        if direction//abs(direction) == LEFT:
             self.rect.midright = self.pos
             self.image = pygame.transform.flip(self.image, True, False)
+            if abs(direction) == UP:
+                self.rect.bottom -= 100
+                self.image = pygame.transform.rotate(self.image, -45)
         else:
             self.rect.midleft = self.pos
+            if abs(direction) == UP:
+                self.image = pygame.transform.rotate(self.image, 45)
+                self.rect.bottom -= 100
 
     def update(self):
         self.pos += self.vel
         self.count += 1
 
+
         if self.count > self.distance:
             self.kill()
-
-
 
 
 class DefaultGun(object):
@@ -55,7 +61,7 @@ class DefaultGun(object):
         return Bullet(direction, x, y)
 
 # TODO
-# Gun needs to store references to 
+# Gun needs to store references to
 
 class FireGun(DefaultGun):
     def __init__(self, spritesheet):

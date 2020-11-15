@@ -3,38 +3,51 @@ from pygame.math import Vector2 as vec
 
 LEFT = -1
 RIGHT = 1
+UP = 2
+JUMP = pygame.K_z
+MV_LEFT = pygame.K_LEFT
+MV_RIGHT = pygame.K_RIGHT
+MV_UP = pygame.K_UP
+CROUCH = pygame.K_DOWN
+SHOOT = pygame.K_SPACE
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, world, default_gun):
+    def __init__(self, world, spritesheet):
         super(Player, self).__init__()
         self.world = world
-        self.image = self.world.spritesheets["player"].get_image("p1_stand", 50)
+        self.image = spritesheet.get_image("p1_stand", 50)
         self.image.set_colorkey((0,0,0))
         self.rect = self.image.get_rect()
         self.pos = vec(world.start.x, world.start.y)
         self.isJumping = 0
         self.isFacing = RIGHT
         self.imgFacing = RIGHT
-        self.active_gun = default_gun # todo
+        self.isUP = 1
+        self.active_gun = None # todo
 
         self.rect.topleft = self.pos
         self.base_acc = 1
         self.vel = vec(0,0)
         self.acc = vec(0,0)
 
+    def set_gun(self, gun):
+        self.active_gun = gun
+
     def jump(self):
         self.vel.y = -15
         self.isJumping = 1
 
     def move(self, direction):
-        self.acc.x = direction*self.base_acc
-        self.isFacing = direction
+        self.acc.x = self.base_acc*direction//abs(direction)
+        self.isFacing = direction//abs(direction)
+        self.isUP = abs(direction)
 
     def shoot(self):
-        if self.isFacing == LEFT:
-            self.world.bullet_factory(self.active_gun, self.isFacing, self.rect.left, self.rect.centery)
-        elif self.isFacing == RIGHT:
-            self.world.bullet_factory(self.active_gun, self.isFacing, self.rect.right, self.rect.centery)
+        if not self.active_gun.check_cooldown():
+            if self.isFacing == LEFT:
+                self.world.add_to_group(self.active_gun.fire(self.isFacing*self.isUP,self.rect.left, self.rect.centery ), "bullets")
+            elif self.isFacing == RIGHT:
+                self.world.add_to_group(self.active_gun.fire(self.isFacing*self.isUP,self.rect.right, self.rect.centery ), "bullets")
 
     def update(self):
         # For each round, calculate applied forces and simulate acceleration
@@ -44,13 +57,18 @@ class Player(pygame.sprite.Sprite):
         self.active_gun.update()
 
 
-        if keys[pygame.K_UP] and self.isJumping == 0:
+        if keys[JUMP] and self.isJumping == 0:
             self.jump()
         elif self.isJumping == 0:
-            if keys[pygame.K_LEFT]:
-                self.move(LEFT)
-            if keys[pygame.K_RIGHT]:
-                self.move(RIGHT)
+            mvment = 0
+            if keys[MV_LEFT]:
+                mvment += LEFT
+            if keys[MV_RIGHT]:
+                mvment += RIGHT
+            if keys[MV_UP]:
+                mvment *= UP
+            if mvment != 0:
+                self.move(mvment)
             # apply coefficient of friction
             self.acc.x += self.vel.x * self.world.physics.friction
         #print(self.vel, end=",")
@@ -64,7 +82,7 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.bottomleft = self.pos
         if self.vel.y > 0:
-            hits = pygame.sprite.spritecollide(self, self.world.all_platforms, False)
+            hits = pygame.sprite.spritecollide(self, self.world.get_group("platforms"), False)
             #print(hits, end=",")
             if hits:
                 if self.pos.y <= hits[0].rect.bottom:
@@ -76,5 +94,5 @@ class Player(pygame.sprite.Sprite):
         if self.isFacing != self.imgFacing:
             self.image = pygame.transform.flip(self.image, True, False)
             self.imgFacing = self.isFacing
-        if keys[pygame.K_SPACE]:
+        if keys[SHOOT]:
             self.shoot()
