@@ -1,12 +1,11 @@
 import pygame
 from pygame.math import Vector2 as vec
-from utils.weapons.guns import Gun
 
 LEFT = -1
 RIGHT = 1
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, world):
+    def __init__(self, world, default_gun):
         super(Player, self).__init__()
         self.world = world
         self.image = self.world.spritesheets["player"].get_image("p1_stand", 50)
@@ -16,7 +15,7 @@ class Player(pygame.sprite.Sprite):
         self.isJumping = 0
         self.isFacing = RIGHT
         self.imgFacing = RIGHT
-        self.active_gun = Gun() # todo
+        self.active_gun = default_gun # todo
 
         self.rect.topleft = self.pos
         self.base_acc = 1
@@ -77,6 +76,5 @@ class Player(pygame.sprite.Sprite):
         if self.isFacing != self.imgFacing:
             self.image = pygame.transform.flip(self.image, True, False)
             self.imgFacing = self.isFacing
-
         if keys[pygame.K_SPACE]:
             self.shoot()

@@ -1,12 +1,19 @@
 import pygame
 
-def updateWorld(world, group):
+def updateWorld(world, group, camera):
     world.window.blit(world.background, [0, 0])
-    world.all_platforms.draw(world.window)
+    #world.all_platforms.draw(world.window)
+    for platform in world.all_platforms:
+        world.window.blit(platform.image, camera.apply(platform))
+        #platform.draw(world.window)
+
+    for sprite in group:
+        world.window.blit(sprite.image, camera.apply(sprite))
+    world.all_bullets.update()
     for bullet in world.all_bullets:
-        bullet.update()
-        bullet.draw(world.window)
-    group.draw(world.window)
+        world.window.blit(bullet.image, camera.apply(bullet))
+
+
     pygame.display.update()
 
 class GameManager(object):

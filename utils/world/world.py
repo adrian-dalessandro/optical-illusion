@@ -12,6 +12,13 @@ class LevelBuilder(object):
         theme = self._parse_theme(lines)
         level = self._parse_level(lines)
         self.build(header, theme, level, world)
+        height = len(level)*header["unit"]
+        width = len(level[0])*header["unit"]
+        self.height = height
+        self.width = width
+
+    def shape(self):
+        return self.height, self.width
 
     def build(self, header, theme, level, world):
         unit = header["unit"]
@@ -67,6 +74,7 @@ class Physics(object):
         self.gravity = gravity
         self.friction = friction
 
+
 class World(object):
     def __init__(self, window, physics, spritesheets, background):
         self.window = window
@@ -76,8 +84,17 @@ class World(object):
         self.spritesheets = spritesheets
         self.physics = physics
         self.start = vec(0, 0)
+        self.groups = {"platforms": pygame.sprite.Group(),
+                       "enemies": pygame.sprite.Group(),
+                       "bullets": pygame.sprite.Group()}
         self.all_platforms = pygame.sprite.Group()
         self.all_bullets = pygame.sprite.Group()
+
+    def add_to_group(self, sprite, name):
+        self.groups[name].add(sprite)
+
+    def get_group_list(self):
+        return list(self.groups.values())
 
     def platform_factory(self, x, y, hscale, style):
         plat = Platform(x, y, hscale, self, style)
