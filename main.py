@@ -3,9 +3,9 @@ from utils.world.levels import Level
 from utils.world.camera import Camera
 from utils.actors.player import Player
 from utils.managers import GameManager
-from utils.graphics.sheets import Spritesheet, IconSheet
+from utils.graphics.sheets import Spritesheet, HierarchySpritesheet
 from utils.graphics.themes import Theme
-from utils.weapons.guns import DefaultGun, FireGun
+from utils.weapons.guns2 import ChargeGun
 import pygame
 import json
 
@@ -22,7 +22,8 @@ gamemanager = GameManager(win_width, win_height, game_name)
 theme = Theme("./themes/Grass")
 player_sheet = Spritesheet(theme.actorsheet.spritesheet, theme.actorsheet.dict)
 level_sheet = Spritesheet(theme.tilesheet.spritesheet, theme.tilesheet.dict)
-fire_bullet_sheet = IconSheet("./assets/bullets/fire.png", json.load(open("./assets/bullets/fire.json")))
+#fire_bullet_sheet = IconSheet("./assets/bullets/fire.png", json.load(open("./assets/bullets/fire.json")))
+charge_bullet_sheet = HierarchySpritesheet("./assets/bullets/charge.png", json.load(open("./assets/bullets/charge.json")))
 
 # Game Setup
 level = Level(level_file, level_sheet)
@@ -31,7 +32,7 @@ camera = Camera(l_width, l_height, win_width, win_height)
 physics = Physics(0.8, -0.15)
 world = World(gamemanager.get_window(), camera, physics, level)
 
-fire_gun = FireGun(fire_bullet_sheet)
+fire_gun = ChargeGun(charge_bullet_sheet)
 player = Player(world, player_sheet)
 player.set_gun(fire_gun)
 world.add_to_group(player, "players")

@@ -1,0 +1,9 @@
+{
+"static": [{"x": 34, "y": 13, "width": 118, "height": 118},
+           {"x": 178, "y": 13, "width": 118, "height": 118},
+           {"x": 322, "y": 13, "width": 118, "height": 118},
+           {"x": 472, "y": 13, "width": 118, "height": 118}],
+"motion": [{"x": 613, "y": 13, "width": 118, "height": 118},
+          {"x": 763, "y": 13, "width": 118, "height": 118},
+          {"x": 894, "y": 13, "width": 118, "height": 118}]
+}

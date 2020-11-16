@@ -16,7 +16,7 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = vec(x, y)
         self.count = 0
         self.frames = frames
-        self.current_frame = random.randint(0, len(frames)-2)
+        self.current_frame = 0
         self.image = frames[self.current_frame]
         self.image.set_colorkey((0,0,0))
         self.height = self.image.get_height()
@@ -32,7 +32,8 @@ class Bullet(pygame.sprite.Sprite):
 
 
     def update(self):
-        self.pos += self.vel
+        self.rect.centery += self.vel.y
+        self.rect.centerx += self.vel.x
         self.count += 1
 
 
@@ -49,11 +50,6 @@ Gun logic:
 
 class DefaultGun(object):
     def __init__(self):
-        #self.statistics = {
-        #        "firerate": 4,
-        #        "velocity": Vec(0,0),
-        #        "spread" : 1,
-        #        "angle" : Vec(0,0)}
         self.firerate = 4 #per second
         self.cooldown = 0
 
@@ -71,20 +67,53 @@ class DefaultGun(object):
         self.cooldown = self.firerate
         return Bullet(direction, theta, x, y)
 
-# TODO
-# Gun needs to store references to
+# Bullet as 0 velocity and grows once K is pressed, continues to grow until K released
+class ChargeGun(DefaultGun):
+    def __init__(self, spritesheet):
+        super(ChargeGun, self).__init__()
+        self.charging = False
+        self.charge = 0
+        self.cool_down = 0
+        self.max_charge = 5
+        self.unit_size = 20
+        self.bullets = pygame.sprite.Group()
+        self.charge_frames = spritesheet.get_images("static", self.unit_size)
+        self.fly_frames = spritesheet.get_images("motion", self.unit_size)
+
+
+    def update(self):
+        if not self.charging:
+            if self.cooldown > 0:
+                self.cooldown -= 1
+
+    #def release(self):
+    #    self.charging = False
+    #    self.cool_down = 4
+    #    for bullet in self.bullets:
+
+
+    def fire(self, direction, theta, x, y):
+        self.charging = True
+        self.cool_down = 1
+        bullet = Bullet(direction, theta, x, y, vec(0,0), vec(0,0), 2, self.frames)
+        self.bullets.add(bullet)
+        return bullet
 
 class FireGun(DefaultGun):
     def __init__(self, spritesheet):
         super(FireGun, self).__init__()
         self.firerate = 2
         self.cooldown = 0
-        self.frames = spritesheet.get_images(100)
+        self.count = 1
+        self.spritesheet = spritesheet
         self.bullet = None
 
     def fire(self, direction, theta, x, y):
+        self.frames = self.spritesheet.get_images("static", min(self.count*10,100))
         self.cooldown = self.firerate
-        return Bullet(direction, theta, x, y, vec(0,0), vec(0,0), 2, self.frames)
+        self.count += 1
+        self.count = self.count%20
+        return Bullet(direction, theta, x, y, vec(20,0), vec(0,0), 100, self.frames)
 
 class MultiGun(DefaultGun):
     def __init__(self):

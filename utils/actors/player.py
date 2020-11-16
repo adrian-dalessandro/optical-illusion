@@ -24,6 +24,7 @@ class Player(pygame.sprite.Sprite):
         self.isFacing = RIGHT
         self.imgFacing = RIGHT
         self.isAiming = RIGHT
+        self.trigger_pressed = False
         self.isUP = 1
         self.active_gun = None # todo
 
@@ -47,6 +48,8 @@ class Player(pygame.sprite.Sprite):
     def animate(self):
         pass
 
+    def release(self):
+        self.active_gun.release()
 
     def shoot(self):
         keys = pygame.key.get_pressed()
@@ -63,15 +66,17 @@ class Player(pygame.sprite.Sprite):
             elif self.isFacing == RIGHT:
                 x = self.rect.centerx + x
             y = self.rect.centery - y
-
-            self.world.add_to_group(self.active_gun.fire(self.isFacing, theta, x, y ), "bullets")
+            if self.trigger_pressed:
+                self.active_gun.update_bullets(self.isFacing, theta, x, y)
+            else:
+                self.world.add_to_group(self.active_gun.shoot(self.isFacing, theta, x, y ), "bullets")
 
     def update(self):
         # For each round, calculate applied forces and simulate acceleration
         self.acc = vec(0, self.world.physics.gravity)
         keys = pygame.key.get_pressed()
-
         self.active_gun.update()
+
 
 
         if keys[JUMP] and self.isJumping == 0:
@@ -113,3 +118,7 @@ class Player(pygame.sprite.Sprite):
             self.imgFacing = self.isFacing
         if keys[SHOOT]:
             self.shoot()
+            self.trigger_pressed = True
+        elif self.trigger_pressed and not keys[SHOOT]:
+            self.trigger_pressed = False
+            self.release()
