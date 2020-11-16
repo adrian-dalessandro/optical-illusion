@@ -113,7 +113,8 @@ class ChargeGun(PrototypeGun):
     def release(self):
         # Update Bullet properties before releasing it to the world
         for bullet in self.bullets:
-            bullet.vel = vec(10,0)
+            bullet.vel = vec(15,0)
+            bullet.frames = self.spritesheet.get_images("motion", min(self.max_size, self.charge*self.unit_size))
         # remove reference in group, so that call to update no longer
         self.bullets.empty()
         self.is_charging = False
