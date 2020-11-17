@@ -20,7 +20,7 @@ class Bullet(pygame.sprite.Sprite):
 
 
     def update(self):
-        self.rect.centery += self.vel.y
+        self.rect.centery -= self.vel.y
         self.rect.centerx += self.vel.x
         self.count += 1
         if self.count%2 == 0:
@@ -41,11 +41,18 @@ class Bullet(pygame.sprite.Sprite):
         self.current_frame = (self.current_frame + 1)%len(self.frames)
         new_frame = self.frames[self.current_frame]
         new_rect = new_frame.get_rect()
+        if self.direction == LEFT:
+            new_frame =  pygame.transform.flip(new_frame, True, False)
         new_rect.centery = self.rect.centery
         new_rect.centerx = self.rect.centerx
         self.image = new_frame
         self.rect = new_rect
         self.image.set_colorkey((0,0,0))
+
+    def overwrite_velocity(self, magnitude):
+        v_x = self.direction*cos(radians(self.theta))*magnitude
+        v_y = sin(radians(self.theta))*magnitude
+        self.vel = vec(v_x, v_y)
 
     def overwrite(self, direction, theta, x, y, velocity, frames):
         self.vel = velocity
@@ -113,7 +120,7 @@ class ChargeGun(PrototypeGun):
     def release(self):
         # Update Bullet properties before releasing it to the world
         for bullet in self.bullets:
-            bullet.vel = vec(15,0)
+            bullet.overwrite_velocity(15)
             bullet.frames = self.spritesheet.get_images("motion", min(self.max_size, self.charge*self.unit_size))
         # remove reference in group, so that call to update no longer
         self.bullets.empty()
