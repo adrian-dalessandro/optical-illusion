@@ -1,3 +1,0 @@
-(1) Fix player class: compartmentalize movement, collisions, etc. Add more sprites.
-(2) Fix gun class: Add "aiming". Hold reference to bullets and check if gun is being held down and update bullet accordingly
-(3) Add scrolling

@@ -1,6 +1,39 @@
 from utils.world.platform import Platform
 import pygame
 from pygame.math import Vector2 as vec
+import xml.etree.ElementTree as ET
+
+def consume_xml_sheet(filename):
+    root = ET.parse(filename).getroot()
+    sheet_dict = {}
+    for child in root.getchildren():
+        elem = {}
+        for key in ["x", "y", "width", "height"]:
+            elem[key] = int(child.get(key))
+        sheet_dict[child.get("name").split(".")[0]] = elem
+    return sheet_dict
+
+
+class Level(object):
+    def __init__(self, txm_file):
+        root = ET.parse(filename).getroot()
+        self.width = root.attrib["width"]
+        self.height = root.attrib["height"]
+        self.tilewidth = root.attrib["tilewidth"]
+        self.tileheight = root.attrib["tileheight"]
+        self.tilsetspath = root.findall("tileset")
+        level = root.findall("layer")[0].getchildren()[0].text
+        self.active_layer = [d.rstrip(",").split(",") for d in data.splitlines()]
+
+    def load_tileset(self, tilesetpath):
+        tiles_map = {}
+        tiles = ET.parse(tilesetpath).findall("tile")
+        for tile in tiles:
+            tid = tile.attrib["id"]
+            img = tile.getchildren()[0]
+            w, h, fname = img.values()
+
+
 
 class Level(object):
     def __init__(self, wfname, spritesheet):

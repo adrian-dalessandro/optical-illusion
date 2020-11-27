@@ -12,113 +12,137 @@ MV_UP = pygame.K_UP
 CROUCH = pygame.K_DOWN
 SHOOT = pygame.K_SPACE
 
+class DirtyAnimation(object):
+    def __init__(self, scale, spf, src_dir):
+        self.counter = 0
+        self.switch = 0
+        self.spf = spf
+        self.sprite_dict = {"standing": [], "jumping": []}
+        for f in ["standing0.png", "standing1.png", "standing2.png", "standing3.png"]:
+            image = pygame.image.load(src_dir + "/" + f).convert()
+            image = pygame.transform.scale(image, (scale, scale))
+            image.set_colorkey((0,0,0))
+            self.sprite_dict["standing"].append(image)
+
+        for f in ["jumping0.png"]:
+            image = pygame.image.load(src_dir + "/" + f).convert()
+            image = pygame.transform.scale(image, (scale, scale))
+            image.set_colorkey((0,0,0))
+            self.sprite_dict["jumping"].append(image)
+
+    def next_frame(self, state, facing):
+        sprite = self.sprite_dict[state]
+        self.switch = (self.switch + 1) % self.spf
+        if self.switch == 0:
+            self.counter += 1
+        self.counter = self.counter % len(sprite)
+        image = sprite[self.counter]
+        if facing == LEFT:
+            image = pygame.transform.flip(image, True, False)
+        return image
+
+
 class Player(pygame.sprite.Sprite):
-    def __init__(self, world, spritesheet):
+    def __init__(self, world, spritesheet, default_gun):
         super(Player, self).__init__()
         self.world = world
-        self.image = spritesheet.get_image("p1_stand", 50)
-        self.image.set_colorkey((0,0,0))
+        self.states = {"running": False, "crouching": False,
+                        "jumping": False, "doublejumping": False, "shooting": False, "trigger": False,
+                        "isFacing": RIGHT, "imgFacing": RIGHT}
+        self.attribs = {"jump": -15, "speed": 10}
+        self.animation = DirtyAnimation(64, 4, "./assets/layouts/AdriansCustomGraphics/sprites/player1")
+        self.image = self.animation.next_frame("standing", RIGHT)
         self.rect = self.image.get_rect()
-        self.pos = vec(world.start.x, world.start.y)
-        self.isJumping = 0
-        self.isFacing = RIGHT
-        self.imgFacing = RIGHT
-        self.isAiming = RIGHT
-        self.trigger_pressed = False
-        self.isUP = 1
-        self.active_gun = None # todo
-
-        self.rect.topleft = self.pos
-        self.base_acc = 1
+        self.rect.bottomleft = vec(world.start.x, world.start.y)
         self.vel = vec(0,0)
-        self.acc = vec(0,0)
-
-    def set_gun(self, gun):
-        self.active_gun = gun
+        self.active_gun = default_gun
 
     def jump(self):
-        self.vel.y = -15
-        self.isJumping = 1
+        self.vel.y = self.attribs["jump"]
+        self.states["jumping"] = True
 
-    def move(self, direction):
-        self.acc.x = self.base_acc*direction//abs(direction)
-        self.isFacing = direction//abs(direction)
-        self.isUP = abs(direction)
+    def double_jump(self):
+        self.vel.y = self.attribs["jump"]
+        self.states["doublejumping"] = True
 
-    def animate(self):
-        pass
-
-    def release(self):
-        self.active_gun.release()
-
-    def shoot(self):
-        keys = pygame.key.get_pressed()
+    def aiming(self, keys):
         theta_matrix = [[0,  0], [90, 45]]
-        if not self.active_gun.check_cooldown():
-            theta = theta_matrix[keys[MV_UP] or keys[CROUCH]][keys[MV_LEFT] or keys[MV_RIGHT]]
-            if keys[CROUCH]:
-                theta = -theta
-            x = cos(radians(theta))*self.image.get_width()//2
-            y = sin(radians(theta))*self.image.get_height()
+        theta = theta_matrix[keys[MV_UP] or keys[CROUCH]][keys[MV_LEFT] or keys[MV_RIGHT]]
+        if keys[CROUCH]:
+            theta = -theta
+        x = cos(radians(theta))*self.image.get_width()//2
+        y = sin(radians(theta))*self.image.get_height()
+        if self.states["isFacing"] == LEFT:
+            x = self.rect.centerx - x
+        elif self.states["isFacing"] == RIGHT:
+            x = self.rect.centerx + x
+        y = self.rect.centery - y
+        return theta, x, y
 
-            if self.isFacing == LEFT:
-                x = self.rect.centerx - x
-            elif self.isFacing == RIGHT:
-                x = self.rect.centerx + x
-            y = self.rect.centery - y
-            if self.trigger_pressed:
-                self.active_gun.update_bullets(self.isFacing, theta, x, y)
-            else:
-                self.world.add_to_group(self.active_gun.shoot(self.isFacing, theta, x, y ), "bullets")
+    def resolve_actions(self, keys):
+        # Shooting Action
+        if keys[SHOOT]:
+            if not self.active_gun.check_cooldown():
+                if not self.states["trigger"]:
+                    self.states["trigger"] = True
+                    self.active_gun.press_trigger(self.states["isFacing"], *self.aiming(keys))
+                else:
+                    self.active_gun.hold_trigger(self.states["isFacing"], *self.aiming(keys))
+        else:
+            if self.states["trigger"]:
+                self.active_gun.release_trigger()
+                self.states["trigger"] = False
 
-    def update(self):
-        # For each round, calculate applied forces and simulate acceleration
-        self.acc = vec(0, self.world.physics.gravity)
-        keys = pygame.key.get_pressed()
-        self.active_gun.update()
-
-
-
-        if keys[JUMP] and self.isJumping == 0:
-            self.jump()
-        elif self.isJumping == 0:
-            mvment = 0
-            if keys[MV_LEFT]:
-                mvment += LEFT
-            if keys[MV_RIGHT]:
-                mvment += RIGHT
-            if keys[MV_UP]:
-                mvment *= UP
-            if mvment != 0:
-                self.move(mvment)
-            # apply coefficient of friction
-            self.acc.x += self.vel.x * self.world.physics.friction
-        #print(self.vel, end=",")
-        self.vel += self.acc
-        #print(self.vel, end=",")
-        self.pos += self.vel + 0.5*self.acc
-        if self.pos.x > self.world.width:
-            self.pos.x = 0
-        if self.pos.x < 0:
-            self.pos.x = self.world.width
-
-        self.rect.bottomleft = self.pos
+    def resolve_collisions(self):
         if self.vel.y > 0:
             hits = pygame.sprite.spritecollide(self, self.world.get_group("platforms"), False)
-            #print(hits, end=",")
             if hits:
-                if self.pos.y <= hits[0].rect.bottom:
-                    self.pos.y = hits[0].rect.top
-                    self.vel.y = 0
-                    self.isJumping = 0
-        #print(self.vel)
-        self.rect.bottomleft = self.pos
-        if self.isFacing != self.imgFacing:
-            self.image = pygame.transform.flip(self.image, True, False)
-            self.imgFacing = self.isFacing
-        if keys[SHOOT]:
-            self.shoot()
-            self.trigger_pressed = True
-        elif self.trigger_pressed and not keys[SHOOT]:
-            self.trigger_pressed = False
-            self.release()
+                for hit in hits:
+                    if self.rect.centerx >= hit.rect.left and self.rect.centerx <= hit.rect.right:
+                        if self.rect.bottom >= hit.rect.top and self.rect.centery <  hit.rect.top:
+                            self.rect.bottom = hit.rect.top
+                            self.vel.y = 0
+                            self.states["doublejumping"] = False
+                            self.states["jumping"] = False
+
+    def resolve_motions(self, keys):
+        """
+        The method is for calculating the current player velocity in the
+        x and y direction.
+        """
+        # Resolve x velocity (i.e. running)
+        if not self.states["jumping"]:
+            # Verify player is not jumping, and calculate movement
+            direction = LEFT*keys[MV_LEFT] + RIGHT*keys[MV_RIGHT] # sets direction to either right or left
+
+            if abs(direction) > 0:
+                self.vel.x = self.attribs["speed"]*direction
+                self.states["isFacing"] = direction
+            else:
+                self.vel.x = 0 # if no movement keys pressed, stop x motion
+        # Resolve y velocity (i.e. jumping and failling)
+        if keys[JUMP] and not self.states["jumping"]:
+            self.jump()
+        elif keys[JUMP] and not self.states["doublejumping"] and self.vel.y > 0:
+            self.double_jump()
+        self.vel += vec(0, self.world.physics.gravity)
+
+    def animate(self):
+        if self.states["jumping"] == True:
+            new_image = self.animation.next_frame("jumping", self.states["isFacing"])
+        else:
+            new_image = self.animation.next_frame("standing", self.states["isFacing"])
+        new_rect = new_image.get_rect()
+        new_rect.centery = self.rect.centery
+        new_rect.centerx = self.rect.centerx
+        self.image = new_image
+        self.rect = new_rect
+
+    def update(self):
+        keys = pygame.key.get_pressed()
+        self.resolve_motions(keys)
+        self.rect.center += self.vel
+        self.resolve_collisions()
+        self.active_gun.update()
+        self.resolve_actions(keys)
+        self.animate()

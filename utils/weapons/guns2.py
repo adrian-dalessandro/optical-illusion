@@ -60,7 +60,7 @@ class Bullet(pygame.sprite.Sprite):
         self.theta = theta
         self.frames = frames
         self.image, self.rect = self.transform(frames[self.current_frame], x, y)
-        self.image.set_colorkey((0,0,0))
+        self.image.set_colorkey((0,0,0,0))
 
 
 
@@ -69,24 +69,27 @@ class PrototypeGun(object):
     """------------+
     | PrototypeGun |--> This class is the basic prototype for a gun. All guns should be an extension of this class.
     +--------------+"""
-    def __init__(self, spritesheet):
+    def __init__(self, spritesheet, world):
         # instantiate object
         self.spritesheet = spritesheet
+        self.world = world
 
     def check_cooldown(self) -> bool:
         # if cooldown is greater than 0, return True to indicate that the gun is in cooldown mode
         raise NotImplementedError('subclasses must override check_cooldown()!')
 
-    def update(self, direction, theta, x, y): #
-        pass
+    def update(self): #
+        raise NotImplementedError('subclasses must override update()!')
 
-    def release(self):
-        # when player releases weapon trigger, run this script
-        pass # do nothing by default
+    def press_trigger(self, direction, theta, x, y) -> Bullet:
+        raise NotImplementedError('subclasses must override press_trigger()!')
 
-    def shoot(self, direction, theta, x, y) -> Bullet:
-        # if player clicks weapon trigger, run this script
-        raise NotImplementedError('subclasses must override shoot()!')
+    def hold_trigger(self, direction, theta, x, y) -> Bullet:
+        raise NotImplementedError('subclasses must override hold_trigger()!')
+
+    def release_trigger(self):
+        raise NotImplementedError('subclasses must override release_trigger()!')
+
 
 """-----------------+
 | ALL CUSTOM GUNS   |
@@ -95,14 +98,37 @@ class PrototypeGun(object):
 |    |    |    |    |
 V    V    V    V    V
 """
+class DummyGun(PrototypeGun):
+    def __init__(self, spritesheet, world):
+        super(DummyGun, self).__init__(spritesheet, world)
+        self.cooldown = 0
+        self.maxcooldown = 3
+
+    def check_cooldown(self) -> bool:
+        return self.cooldown > 0
+
+    def update(self): #
+        if self.cooldown > 0:
+            self.cooldown -= 1
+
+    def press_trigger(self, direction, theta, x, y) -> Bullet:
+        print("[P]ressed trigger!")
+        self.cooldown = self.maxcooldown
+
+    def hold_trigger(self, direction, theta, x, y) -> Bullet:
+        print("[H]olding trigger!")
+        self.cooldown = self.maxcooldown
+
+    def release_trigger(self):
+        print("[R]eleased Trigger!")
 
 class ChargeGun(PrototypeGun):
     """---------+
     | ChargeGun |--> this gun spawns a bullet when player clicks weapon trigger, and fires the bullet when
     +-----------+    the player releases the weapons trigger. The bullet grows in size and power the longer
                      the player holds down the weapon trigger; up to a maximum size."""
-    def __init__(self, spritesheet):
-        super(ChargeGun, self).__init__(spritesheet)
+    def __init__(self, spritesheet, world):
+        super(ChargeGun, self).__init__(spritesheet, world)
         self.is_charging = False
         self.charge = 1
         self.max_size = 100
@@ -117,7 +143,7 @@ class ChargeGun(PrototypeGun):
         # Set cooldown after bullet is released
         return self.cooldown > 0
 
-    def release(self):
+    def release_trigger(self):
         # Update Bullet properties before releasing it to the world
         for bullet in self.bullets:
             bullet.overwrite_velocity(15)
@@ -133,15 +159,15 @@ class ChargeGun(PrototypeGun):
         if self.cooldown > 0:
             self.cooldown -= 1
 
-    def update_bullets(self, direction, theta, x, y):
+    def hold_trigger(self, direction, theta, x, y):
         # If player moves while charging, update the charing bullet to reflex new coordinates
         self.charge += 1
         for bullet in self.bullets:
             bullet.overwrite(direction, theta, x, y, vec(0,0), self.spritesheet.get_images("static", min(self.max_size, self.charge*self.unit_size)))
 
-    def shoot(self, direction, theta, x, y):
+    def press_trigger(self, direction, theta, x, y):
         # Spawn a new bullet
         self.is_charging = True
         bullet = Bullet(direction, theta, x, y, vec(0,0), self.spritesheet.get_images("static", self.charge*self.unit_size))
         self.bullets.add(bullet)
-        return bullet
+        self.world.add_to_group(bullet, "bullets")

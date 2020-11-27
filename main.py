@@ -32,9 +32,9 @@ camera = Camera(l_width, l_height, win_width, win_height)
 physics = Physics(0.8, -0.15)
 world = World(gamemanager.get_window(), camera, physics, level)
 
-fire_gun = ChargeGun(charge_bullet_sheet)
-player = Player(world, player_sheet)
-player.set_gun(fire_gun)
+gun = ChargeGun(charge_bullet_sheet, world)
+player = Player(world, player_sheet, gun)
+#player.set_gun(fire_gun)
 world.add_to_group(player, "players")
 world.set_background(bkgr_fname)
 
